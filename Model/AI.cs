@@ -41,6 +41,7 @@ namespace BlazorConnect4.AIModels
     {
         GameEngine gameEngine;
         double[] rewards = { 0, 0, 0, 0, 0, 0, 0 };
+        double[] validActions = { 0, 0, 0, 0, 0, 0, 0 };
         public QAgent(GameEngine gameEngine)
         {
             this.gameEngine = gameEngine;
@@ -55,9 +56,39 @@ namespace BlazorConnect4.AIModels
             return 0;
         }
 
-        public static void TrainAgents()
+        public static void TrainAgents(int numberOfIterations)
         {
-
+            for (int i = 0; i < numberOfIterations; i++)
+            {
+                
+            }
+        }
+        private void GetValidActions(Cell[,] grid)
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                for (int j = 5; j >= 0; j--)
+                {
+                    if (IsValid(grid, i, j))
+                    {
+                        validActions[i] = 1;
+                        rewards[i] = 0;
+                    }
+                    else if (j == 0)
+                    {
+                        validActions[i] = 0;
+                        rewards[i] = -0.1;
+                    }
+                }
+            }
+        }
+        private bool IsValid(Cell[,] grid, int col, int row)
+        {
+            return grid[col, row].Color == CellColor.Blank;
+        }
+        private void setRewards(int col)
+        {
+            rewards[3] = 1;
         }
     }
 
