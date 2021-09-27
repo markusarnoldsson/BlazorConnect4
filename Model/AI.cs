@@ -36,6 +36,30 @@ namespace BlazorConnect4.AIModels
 
     }
 
+    [Serializable]
+    public class QAgent : AI
+    {
+        GameEngine gameEngine;
+        double[] rewards = { 0, 0, 0, 0, 0, 0, 0 };
+        public QAgent(GameEngine gameEngine)
+        {
+            this.gameEngine = gameEngine;
+        }
+        public QAgent ConstructFromFile(string fileName)
+        {
+            QAgent temp = (QAgent)(AI.FromFile(fileName));
+            return temp;
+        }
+        public override int SelectMove(Cell[,] grid)
+        {
+            return 0;
+        }
+
+        public static void TrainAgents()
+        {
+
+        }
+    }
 
 
     [Serializable]
