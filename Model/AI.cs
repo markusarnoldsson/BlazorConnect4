@@ -40,8 +40,38 @@ namespace BlazorConnect4.AIModels
     public class QAgent : AI
     {
         GameEngine gameEngine;
-        double[] rewards = { 0, 0, 0, 0, 0, 0, 0 };
-        double[] validActions = { 0, 0, 0, 0, 0, 0, 0 };
+        double[][] rewards = new double[7][]
+        {
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0}
+        };
+        double[][] validActions = new double[7][]
+        {
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0},
+            new double[]{0, 0, 0, 0, 0, 0}
+        };
+        private struct bestAction
+        {
+            public int col;
+            public int row;
+            public int value;
+            public bestAction(int col, int row, int value)
+            {
+                this.col = col;
+                this.row = row;
+                this.value = value;
+            }
+        }
         public QAgent(GameEngine gameEngine)
         {
             this.gameEngine = gameEngine;
@@ -53,6 +83,9 @@ namespace BlazorConnect4.AIModels
         }
         public override int SelectMove(Cell[,] grid)
         {
+            //need to reset validactions after everymove
+            GetValidActions(grid);
+
             return 0;
         }
 
@@ -63,6 +96,38 @@ namespace BlazorConnect4.AIModels
                 
             }
         }
+
+        private bestAction EvaluateOptions()
+        {
+            bestAction bestOption = new bestAction(0, 0, 0);
+
+             for (int i = 0; i < 7; i++)
+            {
+                for (int j = 5; j >= 0; j--)
+                {
+                    if (validActions[i][j] == 1)
+                    {
+                        if (gameEngine.IsWin(i, j))
+                        {
+                            bestOption.col = i;
+                            bestOption.row = j;
+                            bestOption.value = 1;
+                        }
+                        else
+                        {
+                            if (bestOption.value != 1)
+                            {
+                                bestOption.col = i;
+                                bestOption.row = j;
+                                bestOption.value = 0;
+                            }
+                        }
+                        //check rewards matrix
+                    }
+                }
+            }
+            return bestOption;
+        }
         private void GetValidActions(Cell[,] grid)
         {
             for (int i = 0; i < 7; i++)
@@ -71,13 +136,11 @@ namespace BlazorConnect4.AIModels
                 {
                     if (IsValid(grid, i, j))
                     {
-                        validActions[i] = 1;
-                        rewards[i] = 0;
+                        validActions[i][j] = 1;
                     }
                     else if (j == 0)
                     {
-                        validActions[i] = 0;
-                        rewards[i] = -0.1;
+                        validActions[i][j] = 0;
                     }
                 }
             }
@@ -85,10 +148,6 @@ namespace BlazorConnect4.AIModels
         private bool IsValid(Cell[,] grid, int col, int row)
         {
             return grid[col, row].Color == CellColor.Blank;
-        }
-        private void setRewards(int col)
-        {
-            rewards[3] = 1;
         }
     }
 
