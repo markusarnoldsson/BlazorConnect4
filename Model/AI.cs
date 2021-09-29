@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 using BlazorConnect4.Model;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BlazorConnect4.AIModels
 {
@@ -39,9 +40,16 @@ namespace BlazorConnect4.AIModels
     [Serializable]
     public class QAgent : AI
     {
-        GameEngine gameEngine;
+        private GameEngine gameEngine;
+        private int reward = 0;
+        private Random rnd = new Random();
+        private int turn = 0;
+
+        private double[,] qTable;
+        public double[,] QTable { get => qTable; }
+
         double[][] rewards = new double[7][]
-        {
+{
             new double[]{0, 0, 0, 0, 0, 0},
             new double[]{0, 0, 0, 0, 0, 0},
             new double[]{0, 0, 0, 0, 0, 0},
@@ -49,33 +57,36 @@ namespace BlazorConnect4.AIModels
             new double[]{0, 0, 0, 0, 0, 0},
             new double[]{0, 0, 0, 0, 0, 0},
             new double[]{0, 0, 0, 0, 0, 0}
-        };
-        double[][] validActions = new double[7][]
-        {
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0}
-        };
-        private struct bestAction
-        {
-            public int col;
-            public int row;
-            public int value;
-            public bestAction(int col, int row, int value)
-            {
-                this.col = col;
-                this.row = row;
-                this.value = value;
-            }
-        }
+};
         public QAgent(GameEngine gameEngine)
         {
             this.gameEngine = gameEngine;
+            qTable = new double[21,7];
+            turn = 0;
+            for (int i = 0; i < qTable.GetLength(0); i++)
+            {
+                for (int j = 0; j < qTable.GetLength(1); j++)
+                {
+                    qTable[i, j] = 0;
+                }
+            }
         }
+
+
+        public int[] GetValidActions(Cell[,] boardState)
+        {
+            List<int> validActions = new List<int>();
+            for (int i = 0; i < 7; i++)
+            {
+                if (IsValid(boardState, i))
+                {
+                    validActions.Add(i);
+                }
+            }
+            return validActions.ToArray();
+        }
+
+
         public QAgent ConstructFromFile(string fileName)
         {
             QAgent temp = (QAgent)(AI.FromFile(fileName));
@@ -83,71 +94,53 @@ namespace BlazorConnect4.AIModels
         }
         public override int SelectMove(Cell[,] grid)
         {
-            //need to reset validactions after everymove
-            GetValidActions(grid);
-
+            turn++;
+            InitializeEpisode(grid);
             return 0;
         }
 
-        public static void TrainAgents(int numberOfIterations)
+        private int TakeAction(Cell[,] currentBoard)
         {
-            for (int i = 0; i < numberOfIterations; i++)
-            {
-                
-            }
+            int[] validActions = GetValidActions(currentBoard);
+            int randomIndex = rnd.Next(0, validActions.Length);
+            int action = validActions[randomIndex];
+            double gamma = 0.9;
+
+            double saReward = GetReward(action);
+            double nsReward = nextMaxValue(action);
+            double qCurrentState = saReward + (gamma * nsReward);
+            qTable[turn, action] = qCurrentState;
+            int placement = action;
+            return placement;
         }
 
-        private bestAction EvaluateOptions()
+        private double nextMaxValue(int action)
         {
-            bestAction bestOption = new bestAction(0, 0, 0);
-
-             for (int i = 0; i < 7; i++)
-            {
-                for (int j = 5; j >= 0; j--)
-                {
-                    if (validActions[i][j] == 1)
-                    {
-                        if (gameEngine.IsWin(i, j))
-                        {
-                            bestOption.col = i;
-                            bestOption.row = j;
-                            bestOption.value = 1;
-                        }
-                        else
-                        {
-                            if (bestOption.value != 1)
-                            {
-                                bestOption.col = i;
-                                bestOption.row = j;
-                                bestOption.value = 0;
-                            }
-                        }
-                        //check rewards matrix
-                    }
-                }
-            }
-            return bestOption;
-        }
-        private void GetValidActions(Cell[,] grid)
-        {
+            var nextTurn = turn + 1;
+            double maxValue = 0;
             for (int i = 0; i < 7; i++)
             {
-                for (int j = 5; j >= 0; j--)
+                if (maxValue < qTable[nextTurn, i])
                 {
-                    if (IsValid(grid, i, j))
-                    {
-                        validActions[i][j] = 1;
-                    }
-                    else if (j == 0)
-                    {
-                        validActions[i][j] = 0;
-                    }
+                    maxValue = qTable[nextTurn, i];
                 }
             }
+            return maxValue;
         }
-        private bool IsValid(Cell[,] grid, int col, int row)
+        private double GetReward(int action)
         {
-            return grid[col, row].Color == CellColor.Blank;
+            return qTable[turn, action];
+        }
+
+        public int InitializeEpisode(Cell[,] initialBoard)
+        {
+
+            int recomendedMove = TakeAction(initialBoard);
+            return recomendedMove;
+        }
+        private bool IsValid(Cell[,] grid, int col)
+        {
+            return grid[col, 0].Color == CellColor.Blank;
         }
     }
 

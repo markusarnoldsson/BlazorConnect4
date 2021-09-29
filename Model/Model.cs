@@ -41,8 +41,22 @@ namespace BlazorConnect4.Model
             }
         }
 
+        public static String GetHashCode(Cell[,] grid)
+        {
+            //https://docs.microsoft.com/en-us/dotnet/csharp/how-to/concatenate-multiple-strings
+            var hashCode = new System.Text.StringBuilder(); 
+            for (int i = 0; i < 7; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    hashCode.Append(grid[i, j]);
+                }
+            }
+            return hashCode.ToString();
+        }
 
     }
+
 
 
     public class GameEngine
@@ -89,7 +103,7 @@ namespace BlazorConnect4.Model
             }
             else if (playAgainst == "Q1")
             {
-                ai = new RandomAI();
+                ai = new QAgent(this);
             }
             else if (playAgainst == "Q2")
             {
