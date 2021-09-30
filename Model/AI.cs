@@ -61,7 +61,7 @@ namespace BlazorConnect4.AIModels
         public QAgent(GameEngine gameEngine)
         {
             this.gameEngine = gameEngine;
-            qTable = new double[21,7];
+            qTable = new double[22,7];
             turn = 0;
             for (int i = 0; i < qTable.GetLength(0); i++)
             {
@@ -78,7 +78,7 @@ namespace BlazorConnect4.AIModels
             List<int> validActions = new List<int>();
             for (int i = 0; i < 7; i++)
             {
-                if (IsValid(boardState, i))
+                if (gameEngine.IsValid(i))
                 {
                     validActions.Add(i);
                 }
@@ -95,8 +95,7 @@ namespace BlazorConnect4.AIModels
         public override int SelectMove(Cell[,] grid)
         {
             turn++;
-            InitializeEpisode(grid);
-            return 0;
+            return InitializeEpisode(grid);
         }
 
         private int TakeAction(Cell[,] currentBoard)

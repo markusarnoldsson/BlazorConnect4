@@ -119,7 +119,7 @@ namespace BlazorConnect4.Model
 
 
 
-        private bool IsValid(int col)
+        public bool IsValid(int col)
         {
             return Board.Grid[col, 0].Color == CellColor.Blank;
         }
