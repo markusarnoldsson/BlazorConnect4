@@ -101,8 +101,7 @@ namespace BlazorConnect4.AIModels
         private int TakeAction(Cell[,] currentBoard)
         {
             int[] validActions = GetValidActions(currentBoard);
-            int randomIndex = rnd.Next(0, validActions.Length);
-            int action = validActions[randomIndex];
+            int action = validActions[Exploration(validActions)];
             double gamma = 0.9;
 
             double saReward = GetReward(action);
@@ -113,6 +112,20 @@ namespace BlazorConnect4.AIModels
             return placement;
         }
 
+        private int Exploration(int[] validActions)
+        {
+            int bestColumn = 0;
+
+            for (int i = 0; i < validActions.Length; i++)
+            {
+               if (qTable[turn, validActions[i]] > qTable[turn, bestColumn])
+                {
+                    bestColumn = i;
+                }
+
+            }
+            return bestColumn;
+        }
         private double nextMaxValue(int action)
         {
             var nextTurn = turn + 1;
