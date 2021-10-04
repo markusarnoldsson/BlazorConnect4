@@ -40,23 +40,25 @@ namespace BlazorConnect4.AIModels
 
     [Serializable]
     public class QAgent : AI
-    {
+    { 
         private CellColor PlayerColor;
 
-        //rewards
+        // Konstanter - Belöningar
         //private float InvalidMoveReward = -0.1F;
         private float WinReward = 1F;
         private float LossReward = -1F;
         private float DrawReward = 0F;
 
-        // game tracking
+        // Game tracking variabler
         public long wins = 0;
         public long losses = 0;
         public long ties = 0;
         public long nrOfGames = 0;
 
+        //QTable
         private Dictionary<String, double[]> qDictionary;
 
+        //QAgent konstruktor
         public QAgent(CellColor playerColor)
         {
             if (playerColor == CellColor.Red)
@@ -71,7 +73,7 @@ namespace BlazorConnect4.AIModels
             qDictionary = new Dictionary<string, double[]>();
         }
 
-
+        //Funktion för att få fram alla kolumner som ger ett giltigt drag
         public int[] GetValidMoves(Cell[,] boardState)
         {
             List<int> validMoves = new List<int>();
@@ -85,25 +87,31 @@ namespace BlazorConnect4.AIModels
             return validMoves.ToArray();
         }
 
-
+        //QAgent konstruktor som skapar utifrån fil
         public static QAgent ConstructFromFile(string fileName)
         {
             QAgent temp = (QAgent)(AI.FromFile(fileName));
             return temp;
         }
+
+        //Funktion för att välja ett drag
         public override int SelectMove(Cell[,] grid)
         {
+            //Ta fram alla moves och skicka till exploration
             int[] validMoves = GetValidMoves(grid);
             int move = validMoves[Exploration(grid, validMoves)];
 
             return move;
         }
 
+        //Funktion för att leta bland validMoves efter det bästa draget
+        // - väljer kolumn som har högst Q-värde belöning
         private int Exploration(Cell[,] grid, int[] validMoves)
         {
             int bestColumn = 0;
             double qValue = GetReward(grid, bestColumn);
 
+            //Loopa igenom validMoves och spara undan kolumenn med högst belöning
             for (int i = 0; i < validMoves.Length; i++)
             {
                 if (GetReward(grid, i) > qValue)
@@ -115,32 +123,37 @@ namespace BlazorConnect4.AIModels
             return bestColumn;
         }
 
-
+        //Funktion som returnerar Q-värdes belöning från QTable
         private double GetReward(Cell[,] grid, int move)
         {
             String key = GameBoard.GetHashCodeAsString(grid);
             Random rnd = new Random();
 
+            //Ifall detta state/drag (t.ex. drag 20) finns -> ge Q-värde för kolumn drag
             if (qDictionary.ContainsKey(key))
             {
                 return qDictionary[key][move];
             }
+            //Ifall inte -> ge ut random Q-värden till detta drag och returnera 0
             else
             {
-                double[] moves =
-                {
-                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble()
+                double[] moves = 
+                { 
+                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() 
                 };
 
                 qDictionary.Add(key, moves);
             }
             return 0;
         }
+
+        //Funktion som sätter Q-värden i QTable
         private void SetReward(Cell[,] grid, int move, double value)
         {
             String key = GameBoard.GetHashCodeAsString(grid);
             Random rnd = new Random();
 
+            //Ifall detta state/drag (t.ex. drag 20) INTE finns -> ge ut random Q-värden till detta drag och returnera 0
             if (!qDictionary.ContainsKey(key))
             {
                 double[] moves =
@@ -149,16 +162,21 @@ namespace BlazorConnect4.AIModels
                 };
                 qDictionary.Add(key, moves);
             }
+
+            //Sedan sätt Q-värde
             qDictionary[key][move] = value;
         }
 
+        //Funktion som returnerar ifall valet av kolumn är ett giltigt drag
         private bool IsValid(Cell[,] grid, int col)
         {
             return grid[col, 0].Color == CellColor.Blank;
         }
 
+        //Funktion som tränar QAgent mot en "opponent"-AI i antal "iterations" spel
         public void TrainAgent(AI opponent, int iterations)
         {
+            //GameEngineAI är en modifierad version av GameEngine som stödjer AI mot AI matcher
             GameEngineAi gameEngineAi = new GameEngineAi();
             int opponentsMove;
             Random rnd = new Random();
@@ -170,24 +188,30 @@ namespace BlazorConnect4.AIModels
             losses = 0;
             nrOfGames = 0;
 
+            //Loop för antal "iterations" spel omgångar
             for (int i = 0; i < iterations; i++)
             {
                 nrOfGames++;
 
-                //new game
+                //Reset GameEngine och gameOver till false -> Nytt spel
                 gameEngineAi.Reset();
                 bool gameOver = false;
 
+                //Ifall man är gul (spelaren som inte kör först) -> ge röd-AI ett random första move
                 if (PlayerColor == CellColor.Yellow)
                 {
                     opponentsMove = SelectMove(gameEngineAi.Board.Grid);
                     gameEngineAi.MakeMove(opponentsMove);
                 }
 
+                //Gör ett move
                 int move = SelectMove(gameEngineAi.Board.Grid);
 
-                while (!gameOver)
+
+                //Sålänge spelet är igång:
+                while(!gameOver)
                 {
+                    //Titta ifall en vinst eller draw sker med nya move, isf ge belöningar
                     if (gameEngineAi.IsWin(gameEngineAi.Board, move, PlayerColor))
                     {
                         SetReward(gameEngineAi.Board.Grid, move, WinReward);
@@ -202,45 +226,47 @@ namespace BlazorConnect4.AIModels
                     }
                     else
                     {
-                        //Q(s,a)
+                        //Ta fram (Q(s,a)) för vårt move
                         double saReward = GetReward(gameEngineAi.Board.Grid, move);
 
-
+                        //Skapa en kopia av boarden och gör agentens move på det
+                        // - sedan gör också opponents nästa move
                         GameBoard tempBoard = gameEngineAi.Board.CopyBoard();
-
                         GameEngineAi.MakeMove(ref tempBoard, PlayerColor, move);
-
                         opponentsMove = opponent.SelectMove(tempBoard.Grid);
 
+                        //Titta ifall opponent har en vinst eller draw på sitt move -> isf ge ut belöningar
                         if (gameEngineAi.IsWin(tempBoard, opponentsMove, opponentsColor))
                         {
                             SetReward(gameEngineAi.Board.Grid, move, LossReward);
                             losses++;
                             break;
                         }
-                        else if (gameEngineAi.IsDraw(tempBoard, opponentsMove))
+                        else if(gameEngineAi.IsDraw(tempBoard, opponentsMove))
                         {
                             SetReward(gameEngineAi.Board.Grid, move, DrawReward);
                             ties++;
                             break;
                         }
 
+                        //Ifall det inte är vinst elelr draw, gör opponents move på board och sedan agentens
                         GameEngineAi.MakeMove(ref tempBoard, opponentsColor, opponentsMove);
-
                         int bestMove = SelectMove(tempBoard.Grid);
 
-                        //Q(s',a')
+                        //Här räknar vi ut (genom Q-learning formeln) det nya Q-värdet för denna plats
+                            // Q(s',a')
                         double nsReward = GetReward(tempBoard.Grid, bestMove);
 
-                        //  𝑄(𝑠,𝑎) ← 𝑄(𝑠,𝑎) + 𝛼 (𝛾 ∗ max𝑄(s',𝑎′) − 𝑄(𝑠,𝑎))
+                            //  𝑄(𝑠,𝑎) ← 𝑄(𝑠,𝑎) + 𝛼 (𝛾 ∗ max𝑄(s',𝑎′) − 𝑄(𝑠,𝑎))
                         double qCurrentState = saReward + 0.5F * (0.9F * nsReward - saReward);
                         SetReward(gameEngineAi.Board.Grid, bestMove, qCurrentState);
 
+                        //Gör dragen på faktiska gameboard
                         gameEngineAi.MakeMove(move);
                         gameEngineAi.MakeMove(opponentsMove);
 
+                        //Skaffa ett nytt agent move att analysera
                         move = SelectMove(gameEngineAi.Board.Grid);
-
                     }
                 }
             }
