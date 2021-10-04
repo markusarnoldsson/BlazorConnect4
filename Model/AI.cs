@@ -41,33 +41,43 @@ namespace BlazorConnect4.AIModels
     public class QAgent : AI
     {
         private GameEngine gameEngine;
-        private int reward = 0;
         private Random rnd = new Random();
+        private CellColor PlayerColor;
         private int turn = 0;
+
+        //rewards
+        //private float InvalidMoveReward = -0.1F;
+        private float WinReward = 1F;
+        private float LossReward = -1F;
+        private float DrawReward = 0F;
+
+        // game tracking
+        private long wins = 0;
+        private long losses = 0;
+        private long ties = 0;
+        private long nrOfGames = 0;
 
         private double[,] qTable;
         public double[,] QTable { get => qTable; }
 
-        double[][] rewards = new double[7][]
-{
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0},
-            new double[]{0, 0, 0, 0, 0, 0}
-};
-        public QAgent(GameEngine gameEngine)
+        public QAgent(GameEngine gameEngine, CellColor playerColor)
         {
             this.gameEngine = gameEngine;
-            qTable = new double[22,7];
+            if (playerColor == CellColor.Red)
+            {
+                PlayerColor = CellColor.Red;
+            }
+            else if (playerColor == CellColor.Yellow)
+            {
+                PlayerColor = CellColor.Yellow;
+            }
+            qTable = new double[21,7];
             turn = 0;
             for (int i = 0; i < qTable.GetLength(0); i++)
             {
                 for (int j = 0; j < qTable.GetLength(1); j++)
                 {
-                    qTable[i, j] = 0;
+                    qTable[i, j] = rnd.NextDouble();
                 }
             }
         }
@@ -87,15 +97,16 @@ namespace BlazorConnect4.AIModels
         }
 
 
-        public QAgent ConstructFromFile(string fileName)
+        public static QAgent ConstructFromFile(string fileName)
         {
             QAgent temp = (QAgent)(AI.FromFile(fileName));
             return temp;
         }
         public override int SelectMove(Cell[,] grid)
         {
+            int move = InitializeEpisode(grid);
             turn++;
-            return InitializeEpisode(grid);
+            return move;
         }
 
         private int TakeAction(Cell[,] currentBoard)
@@ -115,10 +126,10 @@ namespace BlazorConnect4.AIModels
         private int Exploration(int[] validActions)
         {
             int bestColumn = 0;
-
+            double qValue = qTable[turn, bestColumn];
             for (int i = 0; i < validActions.Length; i++)
             {
-               if (qTable[turn, validActions[i]] > qTable[turn, bestColumn])
+               if (qTable[turn, validActions[i]] > qValue)
                 {
                     bestColumn = i;
                 }
@@ -153,6 +164,73 @@ namespace BlazorConnect4.AIModels
         private bool IsValid(Cell[,] grid, int col)
         {
             return grid[col, 0].Color == CellColor.Blank;
+        }
+
+        public void TrainAgent(AI opponent, int nrOfGames)
+        {
+            GameEngineAi gameEngineAi = new GameEngineAi();
+            int opponentsAction;
+            CellColor opponentsColor = GameEngineAi.OtherPlayer(PlayerColor);
+
+            for (int i = 0; i < nrOfGames; i++)
+            {
+                nrOfGames++;
+
+                //new game
+                gameEngineAi.Reset();
+                bool gameOver = false;
+
+                if (PlayerColor == CellColor.Yellow)
+                {
+                    opponentsAction = rnd.Next(0, 7);
+                    gameEngineAi.MakeMove(opponentsAction);
+                }
+
+                int action = SelectMove(gameEngine.Board.Grid);
+
+                while(!gameOver)
+                {
+                    if (gameEngineAi.IsWin(gameEngine.Board, action, gameEngineAi.PlayerTurn))
+                    {
+                        qTable[turn, action] += WinReward;
+                        gameOver = true;
+                        wins++;
+                    }
+                    else if (gameEngineAi.IsDraw(gameEngine.Board, action))
+                    {
+                        qTable[turn, action] += DrawReward;
+                        gameOver = true;
+                        ties++;
+                    }
+                    else
+                    {
+                        GameBoard tempBoard = gameEngine.Board.CopyBoard();
+
+                        GameEngineAi.MakeMove(ref tempBoard, PlayerColor, action);
+
+                        opponentsAction = opponent.SelectMove(tempBoard.Grid);
+
+                        if (gameEngineAi.IsWin(tempBoard, opponentsAction, opponentsColor))
+                        {
+                            qTable[turn, action] = LossReward;
+                            losses++;
+                            break;
+                        }
+                        else if(gameEngineAi.IsDraw(tempBoard, opponentsAction))
+                        {
+                            qTable[turn, action] = DrawReward;
+                            ties++;
+                            break;
+                        }
+
+                        gameEngineAi.MakeMove(action);
+                        gameEngineAi.MakeMove(opponentsAction);
+
+                        action = SelectMove(gameEngine.Board.Grid);
+
+                    }
+                }
+            }
         }
     }
 

@@ -54,7 +54,32 @@ namespace BlazorConnect4.Model
             }
             return hashCode.ToString();
         }
+        public GameBoard CopyBoard()
+        {
+            GameBoard copy = new GameBoard();
 
+            for (int i = 0; i <= 6; i++)
+            {
+                for (int j = 0; j <= 5; j++)
+                {
+                    switch (this.Grid[i, j].Color)
+                    {
+                        case CellColor.Blank:
+                            copy.Grid[i, j].Color = CellColor.Blank;
+                            break;
+                        case CellColor.Red:
+                            copy.Grid[i, j].Color = CellColor.Red;
+                            break;
+                        case CellColor.Yellow:
+                            copy.Grid[i, j].Color = CellColor.Yellow;
+                            break;
+
+                    }
+                }
+            }
+            return copy;
+
+        }
     }
 
 
@@ -103,7 +128,7 @@ namespace BlazorConnect4.Model
             }
             else if (playAgainst == "Q1")
             {
-                ai = new QAgent(this);
+                ai = new QAgent(this, Player);
             }
             else if (playAgainst == "Q2")
             {
@@ -137,88 +162,67 @@ namespace BlazorConnect4.Model
             return true;
         }
 
-
-        public bool IsWin(int col, int row)
+        public CellColor OtherPlayer(CellColor player)
         {
-            bool win = false;
-            int score = 0;
-            
+            return player == CellColor.Red ? CellColor.Yellow : CellColor.Red;
+        }
 
-            // Check down
-            if (row < 3)
+        public bool IsWin(CellColor player)
+        {
+            int height = 6;
+            int width = 7;
+            bool isWin = false;
+            // horizontalCheck 
+            for (int j = 0; j < height - 3; j++)
             {
-                for (int i = row; i <= row + 3; i++)
+                for (int i = 0; i < width; i++)
                 {
-                    if (Board.Grid[col,i].Color == Player)
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i, j + 1].Color == player && Board.Grid[i, j + 2].Color == player && Board.Grid[i, j + 3].Color == player)
                     {
-                        score++;
+                        isWin = true;
                     }
                 }
-                win = score == 4;
-                score = 0;
             }
-
-            // Check horizontal
-
-            int left = Math.Max(col - 3, 0);
-
-            for (int i = left; i <= col; i++)
+            if (isWin == false)
             {
-                for (int j = 0; j < 4; j++)
+                // verticalCheck
+                for (int i = 0; i < width - 3; i++)
                 {
-                    if (i+j <= 6 && Board.Grid[i+j,row].Color == Player)
+                    for (int j = 0; j < height; j++)
                     {
-                        score++;
+                        if (Board.Grid[i, j].Color == player && Board.Grid[i + 1, j].Color == player && Board.Grid[i + 2, j].Color == player && Board.Grid[i + 3, j].Color == player)
+                        {
+                            isWin = true;
+                        }
                     }
                 }
-                win = win || score == 4;
-                score = 0;
             }
-
-            // Check left down diagonal
-
-            int colpos;
-            int rowpos;
-
-            for (int i = 0; i < 4; i++)
+            if (isWin == false)
             {
-                for (int j = 0; j < 4; j++)
+                // ascendingDiagonalCheck 
+                for (int i = 3; i < width; i++)
                 {
-                    colpos = col - i + j;
-                    rowpos = row - i + j;
-                    if (0 <= colpos && colpos <= 6 &&
-                        0 <= rowpos && rowpos < 6 &&
-                        Board.Grid[colpos,rowpos].Color == Player)
+                    for (int j = 0; j < height - 3; j++)
                     {
-                        score++;
+                        if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j + 1].Color == player && Board.Grid[i - 2, j + 2].Color == player && Board.Grid[i - 3, j + 3].Color == player)
+                            isWin = true;
                     }
                 }
-
-                win = win || score == 4;
-                score = 0;
             }
 
-            // Check left up diagonal
-
-            for (int i = 0; i < 4; i++)
+            if (isWin == false)
             {
-                for (int j = 0; j < 4; j++)
+                // descendingDiagonalCheck
+                for (int i = 3; i < width; i++)
                 {
-                    colpos = col + i - j;
-                    rowpos = row - i + j;
-                    if (0 <= colpos && colpos <= 6 &&
-                        0 <= rowpos && rowpos < 6 &&
-                        Board.Grid[colpos, rowpos].Color == Player)
+                    for (int j = 3; j < height; j++)
                     {
-                        score++;
+                        if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j - 1].Color == player && Board.Grid[i - 2, j - 2].Color == player && Board.Grid[i - 3, j - 3].Color == player)
+                            isWin = true;
                     }
                 }
-                
-                win = win || score == 4;
-                score = 0;
             }
-
-            return win;
+            return isWin;
         }
 
 
@@ -234,7 +238,7 @@ namespace BlazorConnect4.Model
                     {
                         Board.Grid[col, i].Color = Player;
 
-                        if (IsWin(col,i))
+                        if (IsWin(Player))
                         {
                             message = Player.ToString() + " Wins";
                             active = false;
@@ -285,5 +289,118 @@ namespace BlazorConnect4.Model
         }
     }
 
+    public class GameEngineAi
+    {
+        public GameBoard Board { get; set; }
+        public CellColor PlayerTurn { get; set; }
 
+        public GameEngineAi()
+        {
+            Board = new GameBoard();
+            PlayerTurn = CellColor.Red;
+        }
+        public static CellColor OtherPlayer(CellColor player)
+        {
+            return player == CellColor.Red ? CellColor.Yellow : CellColor.Red;
+        }
+        public bool IsValid(int col)
+        {
+            return Board.Grid[col, 0].Color == CellColor.Blank;
+        }
+        public void Reset()
+        {
+            Board = new GameBoard();
+            PlayerTurn = CellColor.Red;
+        }
+        public bool IsDraw(GameBoard gameBoard, int action)
+        {
+            GameBoard tempBoard = gameBoard.CopyBoard();
+            GameEngineAi.MakeMove(ref tempBoard, CellColor.Yellow, action);
+
+            for (int i = 0; i < 7; i++)
+            {
+                if (tempBoard.Grid[i, 0].Color == CellColor.Blank)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        public bool IsWin(GameBoard gameBoard, int action, CellColor player)
+        {
+            int height = 6;
+            int width = 7;
+            bool Win = false;
+            GameBoard tempBoard = gameBoard.CopyBoard();
+            GameEngineAi.MakeMove(ref tempBoard, player, action);
+
+            // Check horizontal
+            for (int j = 0; j < height - 3; j++)
+            {
+                for (int i = 0; i < width; i++)
+                {
+                    if (tempBoard.Grid[i, j].Color == player && tempBoard.Grid[i, j + 1].Color == player && tempBoard.Grid[i, j + 2].Color == player && tempBoard.Grid[i, j + 3].Color == player)
+                    {
+                        Win = true;
+                    }
+                }
+            }
+            // Check down
+            for (int i = 0; i < width - 3; i++)
+            {
+                for (int j = 0; j < height; j++)
+                {
+                    if (tempBoard.Grid[i, j].Color == player && tempBoard.Grid[i + 1, j].Color == player && tempBoard.Grid[i + 2, j].Color == player && tempBoard.Grid[i + 3, j].Color == player)
+                    {
+                        Win = true;
+                    }
+                }
+            }
+            // Check left up diagonal
+            for (int i = 3; i < width; i++)
+            {
+                for (int j = 0; j < height - 3; j++)
+                {
+                    if (tempBoard.Grid[i, j].Color == player && tempBoard.Grid[i - 1, j + 1].Color == player && tempBoard.Grid[i - 2, j + 2].Color == player && tempBoard.Grid[i - 3, j + 3].Color == player)
+                        Win = true;
+                }
+            }
+        
+
+            // Check left down diagonal
+            for (int i = 3; i < width; i++)
+            {
+                for (int j = 3; j < height; j++)
+                {
+                    if (tempBoard.Grid[i, j].Color == player && tempBoard.Grid[i - 1, j - 1].Color == player && tempBoard.Grid[i - 2, j - 2].Color == player && tempBoard.Grid[i - 3, j - 3].Color == player)
+                        Win = true;
+                }
+            }
+            return Win;
+        }
+        public bool MakeMove(int action)
+        {
+            for (int i = 5; i >= 0; i -= 1)
+            {
+                if (Board.Grid[action, i].Color == CellColor.Blank)
+                {
+                    Board.Grid[action, i].Color = PlayerTurn; 
+                    PlayerTurn = OtherPlayer(PlayerTurn);
+                    return true;
+                }
+            }
+            return false;
+        }
+            public static void MakeMove(ref GameBoard board, CellColor playerColor, int action)
+        {
+            for (int i = 5; i >= 0; i -= 1)
+            {
+                if (board.Grid[action, i].Color == CellColor.Blank)
+                {
+                    board.Grid[action, i].Color = playerColor; 
+
+                }
+            }  
+        }
+    }
 }
