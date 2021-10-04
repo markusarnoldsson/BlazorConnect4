@@ -14,7 +14,7 @@ namespace BlazorConnect4.Model
 
     public class Cell
     {
-        public CellColor Color {get; set;}
+        public CellColor Color { get; set; }
 
         public Cell(CellColor color)
         {
@@ -44,7 +44,7 @@ namespace BlazorConnect4.Model
         public static String GetHashCodeAsString(Cell[,] grid)
         {
             //https://docs.microsoft.com/en-us/dotnet/csharp/how-to/concatenate-multiple-strings
-            System.Text.StringBuilder hashCode = new System.Text.StringBuilder(); 
+            System.Text.StringBuilder hashCode = new System.Text.StringBuilder();
             for (int i = 0; i < 7; i++)
             {
                 for (int j = 0; j < 6; j++)
@@ -87,7 +87,7 @@ namespace BlazorConnect4.Model
     public class GameEngine
     {
         public GameBoard Board { get; set; }
-        public CellColor Player { get; set;}
+        public CellColor Player { get; set; }
         public bool active;
         public String message;
         private AI ai;
@@ -124,7 +124,7 @@ namespace BlazorConnect4.Model
                     ai = new RandomAI();
                     ai.ToFile("Data/Random.bin");
                 }
-                
+
             }
             else if (playAgainst == "Q1")
             {
@@ -158,7 +158,7 @@ namespace BlazorConnect4.Model
         {
             for (int i = 0; i < 7; i++)
             {
-                if (Board.Grid[i,0].Color == CellColor.Blank)
+                if (Board.Grid[i, 0].Color == CellColor.Blank)
                 {
                     return false;
                 }
@@ -227,7 +227,8 @@ namespace BlazorConnect4.Model
 
         public bool Play(int col)
         {
-            if (IsValid(col) && active){
+            if (IsValid(col) && active)
+            {
 
                 for (int i = 5; i >= 0; i--)
                 {
@@ -274,7 +275,7 @@ namespace BlazorConnect4.Model
             {
                 int move = ai.SelectMove(Board.Grid);
 
-                while (! IsValid(move))
+                while (!IsValid(move))
                 {
                     move = ai.SelectMove(Board.Grid);
                 }
@@ -366,7 +367,7 @@ namespace BlazorConnect4.Model
                         Win = true;
                 }
             }
-        
+
 
             // Check left down diagonal
             for (int i = 3; i < width; i++)
@@ -435,23 +436,26 @@ namespace BlazorConnect4.Model
             {
                 if (Board.Grid[move, i].Color == CellColor.Blank)
                 {
-                    Board.Grid[move, i].Color = PlayerTurn; 
+                    Board.Grid[move, i].Color = PlayerTurn;
                     PlayerTurn = OtherPlayer(PlayerTurn);
                     return true;
                 }
             }
             return false;
         }
-            public static void MakeMove(ref GameBoard board, CellColor playerColor, int move)
+        public static bool MakeMove(ref GameBoard board, CellColor playerColor, int move)
         {
             for (int i = 5; i >= 0; i -= 1)
             {
                 if (board.Grid[move, i].Color == CellColor.Blank)
                 {
-                    board.Grid[move, i].Color = playerColor; 
+                    board.Grid[move, i].Color = playerColor;
 
+                    return true;
                 }
-            }  
+            }
+            return false;
         }
+
     }
 }

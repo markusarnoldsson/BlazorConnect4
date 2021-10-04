@@ -40,7 +40,7 @@ namespace BlazorConnect4.AIModels
 
     [Serializable]
     public class QAgent : AI
-    { 
+    {
         private CellColor PlayerColor;
 
         //rewards
@@ -127,9 +127,9 @@ namespace BlazorConnect4.AIModels
             }
             else
             {
-                double[] moves = 
-                { 
-                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() 
+                double[] moves =
+                {
+                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble()
                 };
 
                 qDictionary.Add(key, moves);
@@ -186,7 +186,7 @@ namespace BlazorConnect4.AIModels
 
                 int move = SelectMove(gameEngineAi.Board.Grid);
 
-                while(!gameOver)
+                while (!gameOver)
                 {
                     if (gameEngineAi.IsWin(gameEngineAi.Board, move, PlayerColor))
                     {
@@ -218,7 +218,7 @@ namespace BlazorConnect4.AIModels
                             losses++;
                             break;
                         }
-                        else if(gameEngineAi.IsDraw(tempBoard, opponentsMove))
+                        else if (gameEngineAi.IsDraw(tempBoard, opponentsMove))
                         {
                             SetReward(gameEngineAi.Board.Grid, move, DrawReward);
                             ties++;
@@ -244,7 +244,7 @@ namespace BlazorConnect4.AIModels
                     }
                 }
             }
-            Console.WriteLine("wins: " + wins + ", Losses: " + losses);
+            Console.WriteLine("Victories: " + wins + "\n" + "Ties: " + ties + "\n" + "Defeats: " + losses + "\n" + "Games played: " + nrOfGames + "\n");
         }
     }
 

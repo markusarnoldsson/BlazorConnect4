@@ -33,17 +33,17 @@ namespace BlazorConnect4
         {
             Console.WriteLine("Initialize training protocol!");
 
-            AIModels.QAgent EasyAi = AIModels.QAgent.ConstructFromFile("Data/TempDifficulty.bin");
-            AIModels.QAgent randomAi = AIModels.QAgent.ConstructFromFile("Data/EasyDifficulty.bin");
+            AIModels.QAgent EasyAi = new AIModels.QAgent(Model.CellColor.Yellow);
+            AIModels.QAgent randomAi = new AIModels.QAgent(Model.CellColor.Red);
 
 
             Console.WriteLine("AI's Loaded");
 
-            EasyAi.TrainAgent(randomAi, 100000);
-
+            randomAi.TrainAgent(EasyAi, 1000);
             //Console.WriteLine("Victories: " + EasyAi.wins + "\n" + "Ties: " + EasyAi.ties + "\n" + "Defeats: " + EasyAi.losses + "\n" + "Games played: " + EasyAi.nrOfGames + "\n");
             Console.WriteLine("Time for some R&R!");
-            //EasyAi.ToFile("Data/EasyDifficulty.bin");
+            //EasyYellowAi.ToFile("Data/EasyDifficulty.bin");
+            //EasyRedAi
         }
     }
 }
