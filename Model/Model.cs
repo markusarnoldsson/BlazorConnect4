@@ -286,7 +286,7 @@ namespace BlazorConnect4.Model
             return false;
         }
     }
-
+    //GameEngine variant som stödjer AI mot AI matcher
     public class GameEngineAi
     {
         public GameBoard Board { get; set; }
@@ -328,6 +328,8 @@ namespace BlazorConnect4.Model
             }
             return true;
         }
+
+        //Funktionen skapar en kopia av gameboard och testar action som skickats in -> tittar ifall vinst
         public bool IsWin(GameBoard gameBoard, int move, CellColor player)
         {
             int height = 6;
@@ -430,6 +432,7 @@ namespace BlazorConnect4.Model
             }
             return Win;
         }
+        //Funktion som gör move på gameboard
         public bool MakeMove(int move)
         {
             for (int i = 5; i >= 0; i -= 1)
@@ -443,6 +446,7 @@ namespace BlazorConnect4.Model
             }
             return false;
         }
+        //Funktion som gör "fake-move", bara byter färg
         public static bool MakeMove(ref GameBoard board, CellColor playerColor, int move)
         {
             for (int i = 5; i >= 0; i -= 1)
