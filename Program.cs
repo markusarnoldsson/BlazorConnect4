@@ -19,8 +19,8 @@ namespace BlazorConnect4
             {
                 Directory.CreateDirectory("./Data");
             }
-            CreateHostBuilder(args).Build().Run();
-            //Training();
+            //CreateHostBuilder(args).Build().Run();
+            Training();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -33,15 +33,17 @@ namespace BlazorConnect4
         {
             Console.WriteLine("Initialize training protocol!");
 
-            AIModels.RandomAI randomAI = new AIModels.RandomAI();
-            AIModels.QAgent YellowAi = new AIModels.QAgent(Model.CellColor.Yellow);
+            AIModels.QAgent EasyAi = AIModels.QAgent.ConstructFromFile("Data/TempDifficulty.bin");
+            AIModels.QAgent randomAi = AIModels.QAgent.ConstructFromFile("Data/EasyDifficulty.bin");
+
 
             Console.WriteLine("AI's Loaded");
 
-            YellowAi.TrainAgent(randomAI, 1000000);
+            EasyAi.TrainAgent(randomAi, 100000);
 
+            //Console.WriteLine("Victories: " + EasyAi.wins + "\n" + "Ties: " + EasyAi.ties + "\n" + "Defeats: " + EasyAi.losses + "\n" + "Games played: " + EasyAi.nrOfGames + "\n");
             Console.WriteLine("Time for some R&R!");
-            YellowAi.ToFile("Data/EasyDifficulty.bin");
+            //EasyAi.ToFile("Data/EasyDifficulty.bin");
         }
     }
 }

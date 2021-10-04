@@ -50,10 +50,10 @@ namespace BlazorConnect4.AIModels
         private float DrawReward = 0F;
 
         // game tracking
-        private long wins = 0;
-        private long losses = 0;
-        private long ties = 0;
-        private long nrOfGames = 0;
+        public long wins = 0;
+        public long losses = 0;
+        public long ties = 0;
+        public long nrOfGames = 0;
 
         private Dictionary<String, double[]> qDictionary;
 
@@ -165,6 +165,11 @@ namespace BlazorConnect4.AIModels
 
             CellColor opponentsColor = GameEngineAi.OtherPlayer(PlayerColor);
 
+            wins = 0;
+            ties = 0;
+            losses = 0;
+            nrOfGames = 0;
+
             for (int i = 0; i < iterations; i++)
             {
                 nrOfGames++;
@@ -175,7 +180,7 @@ namespace BlazorConnect4.AIModels
 
                 if (PlayerColor == CellColor.Yellow)
                 {
-                    opponentsMove = rnd.Next(0, 7);
+                    opponentsMove = SelectMove(gameEngineAi.Board.Grid);
                     gameEngineAi.MakeMove(opponentsMove);
                 }
 
@@ -183,7 +188,7 @@ namespace BlazorConnect4.AIModels
 
                 while(!gameOver)
                 {
-                    if (gameEngineAi.IsWin(gameEngineAi.Board, move, gameEngineAi.PlayerTurn))
+                    if (gameEngineAi.IsWin(gameEngineAi.Board, move, PlayerColor))
                     {
                         SetReward(gameEngineAi.Board.Grid, move, WinReward);
                         gameOver = true;
@@ -228,7 +233,9 @@ namespace BlazorConnect4.AIModels
                         double nsReward = GetReward(tempBoard.Grid, bestMove);
 
                         //  𝑄(𝑠,𝑎) ← 𝑄(𝑠,𝑎) + 𝛼 (𝛾 ∗ max𝑄(s',𝑎′) − 𝑄(𝑠,𝑎))
-                        double qCurrentState = saReward + 1 * (0.9F * nsReward - saReward);
+                        double qCurrentState = saReward + 0.5F * (0.9F * nsReward - saReward);
+                        SetReward(gameEngineAi.Board.Grid, bestMove, qCurrentState);
+
                         gameEngineAi.MakeMove(move);
                         gameEngineAi.MakeMove(opponentsMove);
 
@@ -237,6 +244,7 @@ namespace BlazorConnect4.AIModels
                     }
                 }
             }
+            Console.WriteLine("wins: " + wins + ", Losses: " + losses);
         }
     }
 

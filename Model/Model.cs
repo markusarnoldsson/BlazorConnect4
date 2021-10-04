@@ -44,12 +44,12 @@ namespace BlazorConnect4.Model
         public static String GetHashCodeAsString(Cell[,] grid)
         {
             //https://docs.microsoft.com/en-us/dotnet/csharp/how-to/concatenate-multiple-strings
-            var hashCode = new System.Text.StringBuilder(); 
+            System.Text.StringBuilder hashCode = new System.Text.StringBuilder(); 
             for (int i = 0; i < 7; i++)
             {
                 for (int j = 0; j < 6; j++)
                 {
-                    hashCode.Append(grid[i, j]);
+                    hashCode.Append((int)grid[i, j].Color);
                 }
             }
             return hashCode.ToString();
@@ -136,7 +136,7 @@ namespace BlazorConnect4.Model
             }
             else if (playAgainst == "Q2")
             {
-                ai = new RandomAI();
+                ai = new QAgent(Player);
             }
             else if (playAgainst == "Q3")
             {
@@ -239,7 +239,6 @@ namespace BlazorConnect4.Model
                         {
                             message = Player.ToString() + " Wins";
                             active = false;
-                            ai.ToFile("Data/EasyDifficulty.bin");
                             return true;
                         }
 
@@ -305,6 +304,10 @@ namespace BlazorConnect4.Model
         {
             return Board.Grid[col, 0].Color == CellColor.Blank;
         }
+        public static bool IsValid(Cell[,] board, int col)
+        {
+            return board[col, 0].Color == CellColor.Blank;
+        }
         public void Reset()
         {
             Board = new GameBoard();
@@ -324,13 +327,13 @@ namespace BlazorConnect4.Model
             }
             return true;
         }
-        public bool IsWin(GameBoard gameBoard, int action, CellColor player)
+        public bool IsWin(GameBoard gameBoard, int move, CellColor player)
         {
             int height = 6;
             int width = 7;
             bool Win = false;
             GameBoard tempBoard = gameBoard.CopyBoard();
-            GameEngineAi.MakeMove(ref tempBoard, player, action);
+            GameEngineAi.MakeMove(ref tempBoard, player, move);
 
             // Check horizontal
             for (int j = 0; j < height - 3; j++)
@@ -376,26 +379,76 @@ namespace BlazorConnect4.Model
             }
             return Win;
         }
-        public bool MakeMove(int action)
+        public bool IsWin(CellColor player)
+        {
+            int height = 6;
+            int width = 7;
+            bool Win = false;
+
+            // Check horizontal
+            for (int j = 0; j < height - 3; j++)
+            {
+                for (int i = 0; i < width; i++)
+                {
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i, j + 1].Color == player && Board.Grid[i, j + 2].Color == player && Board.Grid[i, j + 3].Color == player)
+                    {
+                        Win = true;
+                    }
+                }
+            }
+            // Check down
+            for (int i = 0; i < width - 3; i++)
+            {
+                for (int j = 0; j < height; j++)
+                {
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i + 1, j].Color == player && Board.Grid[i + 2, j].Color == player && Board.Grid[i + 3, j].Color == player)
+                    {
+                        Win = true;
+                    }
+                }
+            }
+            // Check left up diagonal
+            for (int i = 3; i < width; i++)
+            {
+                for (int j = 0; j < height - 3; j++)
+                {
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j + 1].Color == player && Board.Grid[i - 2, j + 2].Color == player && Board.Grid[i - 3, j + 3].Color == player)
+                        Win = true;
+                }
+            }
+
+
+            // Check left down diagonal
+            for (int i = 3; i < width; i++)
+            {
+                for (int j = 3; j < height; j++)
+                {
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j - 1].Color == player && Board.Grid[i - 2, j - 2].Color == player && Board.Grid[i - 3, j - 3].Color == player)
+                        Win = true;
+                }
+            }
+            return Win;
+        }
+        public bool MakeMove(int move)
         {
             for (int i = 5; i >= 0; i -= 1)
             {
-                if (Board.Grid[action, i].Color == CellColor.Blank)
+                if (Board.Grid[move, i].Color == CellColor.Blank)
                 {
-                    Board.Grid[action, i].Color = PlayerTurn; 
+                    Board.Grid[move, i].Color = PlayerTurn; 
                     PlayerTurn = OtherPlayer(PlayerTurn);
                     return true;
                 }
             }
             return false;
         }
-            public static void MakeMove(ref GameBoard board, CellColor playerColor, int action)
+            public static void MakeMove(ref GameBoard board, CellColor playerColor, int move)
         {
             for (int i = 5; i >= 0; i -= 1)
             {
-                if (board.Grid[action, i].Color == CellColor.Blank)
+                if (board.Grid[move, i].Color == CellColor.Blank)
                 {
-                    board.Grid[action, i].Color = playerColor; 
+                    board.Grid[move, i].Color = playerColor; 
 
                 }
             }  
