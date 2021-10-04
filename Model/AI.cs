@@ -2,6 +2,7 @@
 using System.IO;
 using BlazorConnect4.Model;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Linq;
 
 namespace BlazorConnect4.AIModels
@@ -43,7 +44,6 @@ namespace BlazorConnect4.AIModels
         private GameEngine gameEngine;
         private Random rnd = new Random();
         private CellColor PlayerColor;
-        private int turn = 0;
 
         //rewards
         //private float InvalidMoveReward = -0.1F;
@@ -57,8 +57,7 @@ namespace BlazorConnect4.AIModels
         private long ties = 0;
         private long nrOfGames = 0;
 
-        private double[,] qTable;
-        public double[,] QTable { get => qTable; }
+        private Dictionary<String, double[]> qDictionary;
 
         public QAgent(GameEngine gameEngine, CellColor playerColor)
         {
@@ -71,29 +70,22 @@ namespace BlazorConnect4.AIModels
             {
                 PlayerColor = CellColor.Yellow;
             }
-            qTable = new double[21,7];
-            turn = 0;
-            for (int i = 0; i < qTable.GetLength(0); i++)
-            {
-                for (int j = 0; j < qTable.GetLength(1); j++)
-                {
-                    qTable[i, j] = rnd.NextDouble();
-                }
-            }
+
+            qDictionary = new Dictionary<string, double[]>();
         }
 
 
-        public int[] GetValidActions(Cell[,] boardState)
+        public int[] GetValidMoves(Cell[,] boardState)
         {
-            List<int> validActions = new List<int>();
+            List<int> validMoves = new List<int>();
             for (int i = 0; i < 7; i++)
             {
                 if (gameEngine.IsValid(i))
                 {
-                    validActions.Add(i);
+                    validMoves.Add(i);
                 }
             }
-            return validActions.ToArray();
+            return validMoves.ToArray();
         }
 
 
@@ -104,32 +96,20 @@ namespace BlazorConnect4.AIModels
         }
         public override int SelectMove(Cell[,] grid)
         {
-            int move = InitializeEpisode(grid);
-            turn++;
+            int[] validMoves = GetValidMoves(grid);
+            int move = validMoves[Exploration(grid, validMoves)];
+
             return move;
         }
 
-        private int TakeAction(Cell[,] currentBoard)
-        {
-            int[] validActions = GetValidActions(currentBoard);
-            int action = validActions[Exploration(validActions)];
-            double gamma = 0.9;
-
-            double saReward = GetReward(action);
-            double nsReward = nextMaxValue(action);
-            double qCurrentState = saReward + (gamma * nsReward);
-            qTable[turn, action] = qCurrentState;
-            int placement = action;
-            return placement;
-        }
-
-        private int Exploration(int[] validActions)
+        private int Exploration(Cell[,] grid, int[] validMoves)
         {
             int bestColumn = 0;
-            double qValue = qTable[turn, bestColumn];
-            for (int i = 0; i < validActions.Length; i++)
+            double qValue = GetReward(grid, bestColumn);
+
+            for (int i = 0; i < validMoves.Length; i++)
             {
-               if (qTable[turn, validActions[i]] > qValue)
+                if (GetReward(grid, i) > qValue)
                 {
                     bestColumn = i;
                 }
@@ -137,30 +117,23 @@ namespace BlazorConnect4.AIModels
             }
             return bestColumn;
         }
-        private double nextMaxValue(int action)
+
+
+        private double GetReward(Cell[,] grid, int move)
         {
-            var nextTurn = turn + 1;
-            double maxValue = 0;
-            for (int i = 0; i < 7; i++)
+            String key = GameBoard.GetHashCodeAsString(grid);
+            if (qDictionary.ContainsKey(key))
             {
-                if (maxValue < qTable[nextTurn, i])
-                {
-                    maxValue = qTable[nextTurn, i];
-                }
+                return qDictionary[key][move];
             }
-            return maxValue;
-        }
-        private double GetReward(int action)
-        {
-            return qTable[turn, action];
+            else
+            {
+                double[] moves = { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+                qDictionary.Add(key, moves);
+            }
+            return 0;
         }
 
-        public int InitializeEpisode(Cell[,] initialBoard)
-        {
-
-            int recomendedMove = TakeAction(initialBoard);
-            return recomendedMove;
-        }
         private bool IsValid(Cell[,] grid, int col)
         {
             return grid[col, 0].Color == CellColor.Blank;
@@ -192,13 +165,13 @@ namespace BlazorConnect4.AIModels
                 {
                     if (gameEngineAi.IsWin(gameEngine.Board, action, gameEngineAi.PlayerTurn))
                     {
-                        qTable[turn, action] += WinReward;
+                        //qTable[turn, action] += WinReward;
                         gameOver = true;
                         wins++;
                     }
                     else if (gameEngineAi.IsDraw(gameEngine.Board, action))
                     {
-                        qTable[turn, action] += DrawReward;
+                        //qTable[turn, action] += DrawReward;
                         gameOver = true;
                         ties++;
                     }
@@ -212,13 +185,13 @@ namespace BlazorConnect4.AIModels
 
                         if (gameEngineAi.IsWin(tempBoard, opponentsAction, opponentsColor))
                         {
-                            qTable[turn, action] = LossReward;
+                            //qTable[turn, action] = LossReward;
                             losses++;
                             break;
                         }
                         else if(gameEngineAi.IsDraw(tempBoard, opponentsAction))
                         {
-                            qTable[turn, action] = DrawReward;
+                            //qTable[turn, action] = DrawReward;
                             ties++;
                             break;
                         }

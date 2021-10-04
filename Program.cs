@@ -28,5 +28,6 @@ namespace BlazorConnect4
                 {
                     webBuilder.UseStartup<Startup>();
                 });
+
     }
 }

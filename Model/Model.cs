@@ -41,7 +41,7 @@ namespace BlazorConnect4.Model
             }
         }
 
-        public static String GetHashCode(Cell[,] grid)
+        public static String GetHashCodeAsString(Cell[,] grid)
         {
             //https://docs.microsoft.com/en-us/dotnet/csharp/how-to/concatenate-multiple-strings
             var hashCode = new System.Text.StringBuilder(); 
@@ -171,58 +171,51 @@ namespace BlazorConnect4.Model
         {
             int height = 6;
             int width = 7;
-            bool isWin = false;
-            // horizontalCheck 
+            bool Win = false;
+
+            // Check horizontal
             for (int j = 0; j < height - 3; j++)
             {
                 for (int i = 0; i < width; i++)
                 {
                     if (Board.Grid[i, j].Color == player && Board.Grid[i, j + 1].Color == player && Board.Grid[i, j + 2].Color == player && Board.Grid[i, j + 3].Color == player)
                     {
-                        isWin = true;
+                        Win = true;
                     }
                 }
             }
-            if (isWin == false)
+            // Check down
+            for (int i = 0; i < width - 3; i++)
             {
-                // verticalCheck
-                for (int i = 0; i < width - 3; i++)
+                for (int j = 0; j < height; j++)
                 {
-                    for (int j = 0; j < height; j++)
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i + 1, j].Color == player && Board.Grid[i + 2, j].Color == player && Board.Grid[i + 3, j].Color == player)
                     {
-                        if (Board.Grid[i, j].Color == player && Board.Grid[i + 1, j].Color == player && Board.Grid[i + 2, j].Color == player && Board.Grid[i + 3, j].Color == player)
-                        {
-                            isWin = true;
-                        }
+                        Win = true;
                     }
                 }
             }
-            if (isWin == false)
+            // Check left up diagonal
+            for (int i = 3; i < width; i++)
             {
-                // ascendingDiagonalCheck 
-                for (int i = 3; i < width; i++)
+                for (int j = 0; j < height - 3; j++)
                 {
-                    for (int j = 0; j < height - 3; j++)
-                    {
-                        if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j + 1].Color == player && Board.Grid[i - 2, j + 2].Color == player && Board.Grid[i - 3, j + 3].Color == player)
-                            isWin = true;
-                    }
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j + 1].Color == player && Board.Grid[i - 2, j + 2].Color == player && Board.Grid[i - 3, j + 3].Color == player)
+                        Win = true;
                 }
             }
 
-            if (isWin == false)
+
+            // Check left down diagonal
+            for (int i = 3; i < width; i++)
             {
-                // descendingDiagonalCheck
-                for (int i = 3; i < width; i++)
+                for (int j = 3; j < height; j++)
                 {
-                    for (int j = 3; j < height; j++)
-                    {
-                        if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j - 1].Color == player && Board.Grid[i - 2, j - 2].Color == player && Board.Grid[i - 3, j - 3].Color == player)
-                            isWin = true;
-                    }
+                    if (Board.Grid[i, j].Color == player && Board.Grid[i - 1, j - 1].Color == player && Board.Grid[i - 2, j - 2].Color == player && Board.Grid[i - 3, j - 3].Color == player)
+                        Win = true;
                 }
             }
-            return isWin;
+            return Win;
         }
 
 
