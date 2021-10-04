@@ -40,9 +40,7 @@ namespace BlazorConnect4.AIModels
 
     [Serializable]
     public class QAgent : AI
-    {
-        private GameEngine gameEngine;
-        private Random rnd = new Random();
+    { 
         private CellColor PlayerColor;
 
         //rewards
@@ -59,9 +57,8 @@ namespace BlazorConnect4.AIModels
 
         private Dictionary<String, double[]> qDictionary;
 
-        public QAgent(GameEngine gameEngine, CellColor playerColor)
+        public QAgent(CellColor playerColor)
         {
-            this.gameEngine = gameEngine;
             if (playerColor == CellColor.Red)
             {
                 PlayerColor = CellColor.Red;
@@ -80,7 +77,7 @@ namespace BlazorConnect4.AIModels
             List<int> validMoves = new List<int>();
             for (int i = 0; i < 7; i++)
             {
-                if (gameEngine.IsValid(i))
+                if (IsValid(boardState, i))
                 {
                     validMoves.Add(i);
                 }
@@ -122,16 +119,37 @@ namespace BlazorConnect4.AIModels
         private double GetReward(Cell[,] grid, int move)
         {
             String key = GameBoard.GetHashCodeAsString(grid);
+            Random rnd = new Random();
+
             if (qDictionary.ContainsKey(key))
             {
                 return qDictionary[key][move];
             }
             else
             {
-                double[] moves = { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+                double[] moves = 
+                { 
+                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() 
+                };
+
                 qDictionary.Add(key, moves);
             }
             return 0;
+        }
+        private void SetReward(Cell[,] grid, int move, double value)
+        {
+            String key = GameBoard.GetHashCodeAsString(grid);
+            Random rnd = new Random();
+
+            if (!qDictionary.ContainsKey(key))
+            {
+                double[] moves =
+                {
+                    rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble()
+                };
+                qDictionary.Add(key, moves);
+            }
+            qDictionary[key][move] = value;
         }
 
         private bool IsValid(Cell[,] grid, int col)
@@ -142,7 +160,9 @@ namespace BlazorConnect4.AIModels
         public void TrainAgent(AI opponent, int nrOfGames)
         {
             GameEngineAi gameEngineAi = new GameEngineAi();
-            int opponentsAction;
+            int opponentsMove;
+            Random rnd = new Random();
+
             CellColor opponentsColor = GameEngineAi.OtherPlayer(PlayerColor);
 
             for (int i = 0; i < nrOfGames; i++)
@@ -155,51 +175,64 @@ namespace BlazorConnect4.AIModels
 
                 if (PlayerColor == CellColor.Yellow)
                 {
-                    opponentsAction = rnd.Next(0, 7);
-                    gameEngineAi.MakeMove(opponentsAction);
+                    opponentsMove = rnd.Next(0, 7);
+                    gameEngineAi.MakeMove(opponentsMove);
                 }
 
-                int action = SelectMove(gameEngine.Board.Grid);
+                int move = SelectMove(gameEngineAi.Board.Grid);
 
                 while(!gameOver)
                 {
-                    if (gameEngineAi.IsWin(gameEngine.Board, action, gameEngineAi.PlayerTurn))
+                    if (gameEngineAi.IsWin(gameEngineAi.Board, move, gameEngineAi.PlayerTurn))
                     {
-                        //qTable[turn, action] += WinReward;
+                        SetReward(gameEngineAi.Board.Grid, move, WinReward);
                         gameOver = true;
                         wins++;
                     }
-                    else if (gameEngineAi.IsDraw(gameEngine.Board, action))
+                    else if (gameEngineAi.IsDraw(gameEngineAi.Board, move))
                     {
-                        //qTable[turn, action] += DrawReward;
+                        SetReward(gameEngineAi.Board.Grid, move, DrawReward);
                         gameOver = true;
                         ties++;
                     }
                     else
                     {
-                        GameBoard tempBoard = gameEngine.Board.CopyBoard();
+                        //Q(s,a)
+                        double saReward = GetReward(gameEngineAi.Board.Grid, move);
 
-                        GameEngineAi.MakeMove(ref tempBoard, PlayerColor, action);
 
-                        opponentsAction = opponent.SelectMove(tempBoard.Grid);
+                        GameBoard tempBoard = gameEngineAi.Board.CopyBoard();
 
-                        if (gameEngineAi.IsWin(tempBoard, opponentsAction, opponentsColor))
+                        GameEngineAi.MakeMove(ref tempBoard, PlayerColor, move);
+
+                        opponentsMove = opponent.SelectMove(tempBoard.Grid);
+
+                        if (gameEngineAi.IsWin(tempBoard, opponentsMove, opponentsColor))
                         {
-                            //qTable[turn, action] = LossReward;
+                            SetReward(gameEngineAi.Board.Grid, move, LossReward);
                             losses++;
                             break;
                         }
-                        else if(gameEngineAi.IsDraw(tempBoard, opponentsAction))
+                        else if(gameEngineAi.IsDraw(tempBoard, opponentsMove))
                         {
-                            //qTable[turn, action] = DrawReward;
+                            SetReward(gameEngineAi.Board.Grid, move, DrawReward);
                             ties++;
                             break;
                         }
 
-                        gameEngineAi.MakeMove(action);
-                        gameEngineAi.MakeMove(opponentsAction);
+                        GameEngineAi.MakeMove(ref tempBoard, opponentsColor, opponentsMove);
 
-                        action = SelectMove(gameEngine.Board.Grid);
+                        int bestMove = SelectMove(tempBoard.Grid);
+
+                        //Q(s',a')
+                        double nsReward = GetReward(tempBoard.Grid, bestMove);
+
+                        //  𝑄(𝑠,𝑎) ← 𝑄(𝑠,𝑎) + 𝛼 (𝛾 ∗ max𝑄(s',𝑎′) − 𝑄(𝑠,𝑎))
+                        double qCurrentState = saReward + 1 * (0.9F * nsReward - saReward);
+                        gameEngineAi.MakeMove(move);
+                        gameEngineAi.MakeMove(opponentsMove);
+
+                        move = SelectMove(gameEngineAi.Board.Grid);
 
                     }
                 }

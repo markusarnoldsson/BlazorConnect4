@@ -128,7 +128,11 @@ namespace BlazorConnect4.Model
             }
             else if (playAgainst == "Q1")
             {
-                ai = new QAgent(this, Player);
+                if (File.Exists("Data/EasyDifficulty.bin"))
+                {
+                    ai = QAgent.ConstructFromFile("Data/EasyDifficulty.bin");
+                }
+                ai = new QAgent(Player);
             }
             else if (playAgainst == "Q2")
             {
@@ -235,6 +239,7 @@ namespace BlazorConnect4.Model
                         {
                             message = Player.ToString() + " Wins";
                             active = false;
+                            ai.ToFile("Data/EasyDifficulty.bin");
                             return true;
                         }
 
