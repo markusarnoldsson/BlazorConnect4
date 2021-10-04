@@ -20,6 +20,7 @@ namespace BlazorConnect4
                 Directory.CreateDirectory("./Data");
             }
             CreateHostBuilder(args).Build().Run();
+            //Training();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -28,6 +29,19 @@ namespace BlazorConnect4
                 {
                     webBuilder.UseStartup<Startup>();
                 });
+        public static void Training()
+        {
+            Console.WriteLine("Initialize training protocol!");
 
+            AIModels.RandomAI randomAI = new AIModels.RandomAI();
+            AIModels.QAgent YellowAi = new AIModels.QAgent(Model.CellColor.Yellow);
+
+            Console.WriteLine("AI's Loaded");
+
+            YellowAi.TrainAgent(randomAI, 1000000);
+
+            Console.WriteLine("Time for some R&R!");
+            YellowAi.ToFile("Data/EasyDifficulty.bin");
+        }
     }
 }

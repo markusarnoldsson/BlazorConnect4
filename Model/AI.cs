@@ -157,7 +157,7 @@ namespace BlazorConnect4.AIModels
             return grid[col, 0].Color == CellColor.Blank;
         }
 
-        public void TrainAgent(AI opponent, int nrOfGames)
+        public void TrainAgent(AI opponent, int iterations)
         {
             GameEngineAi gameEngineAi = new GameEngineAi();
             int opponentsMove;
@@ -165,7 +165,7 @@ namespace BlazorConnect4.AIModels
 
             CellColor opponentsColor = GameEngineAi.OtherPlayer(PlayerColor);
 
-            for (int i = 0; i < nrOfGames; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 nrOfGames++;
 
