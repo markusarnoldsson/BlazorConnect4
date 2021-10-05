@@ -45,9 +45,9 @@ namespace BlazorConnect4.AIModels
 
         // Konstanter - Belöningar
         //private float InvalidMoveReward = -0.1F;
-        private float WinReward = 1F;
-        private float LossReward = -1F;
-        private float DrawReward = 0F;
+        private float WinReward = 1;
+        private float LossReward = -1;
+        private float DrawReward = 0;
 
         // Game tracking variabler
         public long wins = 0;
@@ -79,7 +79,7 @@ namespace BlazorConnect4.AIModels
             List<int> validMoves = new List<int>();
             for (int i = 0; i < 7; i++)
             {
-                if (IsValid(boardState, i))
+                if (GameEngineAi.IsValid(boardState, i))
                 {
                     validMoves.Add(i);
                 }
@@ -97,10 +97,26 @@ namespace BlazorConnect4.AIModels
         //Funktion för att välja ett drag
         public override int SelectMove(Cell[,] grid)
         {
+            Random rnd = new Random();
+            //procent som ska utforskas
+            double epsilon = 0.9;
             //Ta fram alla moves och skicka till exploration
             int[] validMoves = GetValidMoves(grid);
-            int move = validMoves[Exploration(grid, validMoves)];
+            int temp = EGreedyMove(epsilon, grid, validMoves);
+            int move = 0;
 
+            for (int i = 0; i < validMoves.Length; i++)
+            {
+                if (temp == validMoves[i])
+                {
+                    move = validMoves[i];
+                }
+                else
+                {
+                    move = validMoves[rnd.Next(0, validMoves.Length)];
+                }
+            }
+            
             return move;
         }
 
@@ -117,10 +133,26 @@ namespace BlazorConnect4.AIModels
                 if (GetReward(grid, i) > qValue)
                 {
                     bestColumn = i;
+                    qValue = GetReward(grid, bestColumn);
                 }
 
             }
             return bestColumn;
+        }
+
+        public int EGreedyMove(double epsilon, Cell[,] board, int[] validMoves)
+        {
+            Random rnd = new Random();
+            int move = -1;
+            if (rnd.NextDouble() < epsilon)
+            {
+                move = validMoves[rnd.Next(0, validMoves.Length)];
+            }
+            else
+            {
+                move = Exploration(board, validMoves);
+            }
+            return move;
         }
 
         //Funktion som returnerar Q-värdes belöning från QTable
@@ -143,8 +175,8 @@ namespace BlazorConnect4.AIModels
                 };
 
                 qDictionary.Add(key, moves);
+                return 0;
             }
-            return 0;
         }
 
         //Funktion som sätter Q-värden i QTable
@@ -200,12 +232,12 @@ namespace BlazorConnect4.AIModels
                 //Ifall man är gul (spelaren som inte kör först) -> ge röd-AI ett random första move
                 if (PlayerColor == CellColor.Yellow)
                 {
-                    opponentsMove = SelectMove(gameEngineAi.Board.Grid);
+                    opponentsMove = EGreedyMove(1, gameEngineAi.Board.Grid, GetValidMoves(gameEngineAi.Board.Grid));
                     gameEngineAi.MakeMove(opponentsMove);
                 }
 
                 //Gör ett move
-                int move = SelectMove(gameEngineAi.Board.Grid);
+                int move = EGreedyMove(0.7F, gameEngineAi.Board.Grid, GetValidMoves(gameEngineAi.Board.Grid));
 
 
                 //Sålänge spelet är igång:
@@ -251,7 +283,7 @@ namespace BlazorConnect4.AIModels
 
                         //Ifall det inte är vinst elelr draw, gör opponents move på board och sedan agentens
                         GameEngineAi.MakeMove(ref tempBoard, opponentsColor, opponentsMove);
-                        int bestMove = SelectMove(tempBoard.Grid);
+                        int bestMove = EGreedyMove(2, gameEngineAi.Board.Grid, GetValidMoves(gameEngineAi.Board.Grid));
 
                         //Här räknar vi ut (genom Q-learning formeln) det nya Q-värdet för denna plats
                             // Q(s',a')
@@ -259,18 +291,18 @@ namespace BlazorConnect4.AIModels
 
                             //  𝑄(𝑠,𝑎) ← 𝑄(𝑠,𝑎) + 𝛼 (𝛾 ∗ max𝑄(s',𝑎′) − 𝑄(𝑠,𝑎))
                         double qCurrentState = saReward + 0.5F * (0.9F * nsReward - saReward);
-                        SetReward(gameEngineAi.Board.Grid, bestMove, qCurrentState);
+                        SetReward(gameEngineAi.Board.Grid, move, qCurrentState);
 
                         //Gör dragen på faktiska gameboard
                         gameEngineAi.MakeMove(move);
                         gameEngineAi.MakeMove(opponentsMove);
 
                         //Skaffa ett nytt agent move att analysera
-                        move = SelectMove(gameEngineAi.Board.Grid);
+                        move = EGreedyMove(0.7F, gameEngineAi.Board.Grid, GetValidMoves(gameEngineAi.Board.Grid));
                     }
                 }
             }
-            Console.WriteLine("Victories: " + wins + "\n" + "Ties: " + ties + "\n" + "Defeats: " + losses + "\n" + "Games played: " + nrOfGames + "\n");
+            Console.WriteLine("Victories: " + wins + "\n" + "Ties: " + ties + "\n" + "Defeats: " + losses + "\n" + "winrate: " + (((double)wins/nrOfGames)*100) + "%\n" + "Games played: " + nrOfGames + "\n");
         }
     }
 
